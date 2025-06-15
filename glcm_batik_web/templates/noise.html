@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Noise to Pola Batik</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; text-align: center; }
+        .container { max-width: 600px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 10px; }
+        .result { margin-top: 20px; }
+        img { max-width: 100%; height: auto; margin-top: 20px; border-radius: 5px; }
+        h2 { color: #333; }
+        h3 { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add Noise to Image</h2>
+        <a href="/"><< Go Home</a>
+        <p>Unggah gambar batik (JPG, PNG, BMP) untuk diberika noise.</p>
+        <input type="file" accept="image/*" id="imageInput" name="file" required>
+
+        <div class="result" id="preview" style="display: none;">
+            <button type="button" onclick="uploadImage('gauss')">Gauss Noise</button>
+            <button type="button" onclick="uploadImage('s&p')">Salt & Pepper Noise</button>
+            <button type="button" onclick="uploadImage('poisson')">Poisson Noise</button>
+            <button type="button" onclick="uploadImage('speckle')">Speckle Noise</button>
+            <h3>Preview</h3>
+            <img src="#" alt="Preview Gambar" id="imagePreview">
+        </div>
+
+        <div class="result" id="result" style="display: none;">
+            <h3>Result</h3>
+            <img src="#" alt="Hasil Gambar" id="imageResult">
+            <br>
+            <a href="#" id="downloadImage">Download Image</a>
+        </div>
+    </div>
+</body>
+
+<script>
+    const imageInput = document.querySelector("#imageInput");
+    const preview = document.querySelector("#preview");
+    const imagePreview = document.querySelector("#imagePreview");
+
+    const result = document.querySelector("#result");
+    const imageResult = document.querySelector("#imageResult");
+    const downloadButton = document.querySelector("#downloadImage");
+
+    function uploadImage(noise_type) {
+        const file = imageInput.files[0];
+
+        if (!file) {
+            alert("Please select an image!");
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append("type", noise_type);
+        formData.append("file", file);
+
+        const sendFetch = fetch(document.location.href, {
+            method: 'POST',
+            body: formData,
+        });
+
+        sendFetch.then((response) => {
+            if (!response.ok) {
+                throw new Error("Upload Failed");
+            }
+
+            return response.blob();
+        }).then((image) => {
+            const imageURL = URL.createObjectURL(image);
+
+            result.style.display = 'block';
+
+            imageResult.src = imageURL;
+            downloadButton.href = imageURL;
+            downloadButton.download = "noise_result.png";
+        }).catch((error) => {
+
+            console.log(error);
+            alert("Error Uploading Image");
+        });
+    }
+
+    imageInput.addEventListener('change', function () {
+        const file = this.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+
+                preview.style.display = 'block';
+            };
+
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+</html>

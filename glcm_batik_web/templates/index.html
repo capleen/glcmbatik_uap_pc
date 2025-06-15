@@ -16,11 +16,17 @@
 <body>
     <div class="container">
         <h2>Klasifikasi Pola Batik Menggunakan GLCM dan KNN/SVM</h2>
+        <a href="/add-noise">Add Noise to Picture >></a>
         <p>Unggah gambar batik (JPG, PNG, BMP) untuk diprediksi polanya.</p>
         <form method="post" enctype="multipart/form-data">
-            <input type="file" name="file" required>
+            <input type="file" accept="image/*" id="imageInput" name="file" required>
             <input type="submit" value="Upload & Prediksi">
         </form>
+
+        <div class="result" id="preview" style="display: none;">
+            <h3>Preview</h3>
+            <img src="#" alt="Preview Gambar" id="imagePreview">
+        </div>
 
         {% if filename %}
         <div class="result">
@@ -30,4 +36,26 @@
         {% endif %}
     </div>
 </body>
+
+<script>
+    const imageInput = document.querySelector("#imageInput");
+    const preview = document.querySelector("#preview");
+    const imagePreview = document.querySelector("#imagePreview");
+
+    imageInput.addEventListener('change', function () {
+        const file = this.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+
+                preview.style.display = 'block';
+            };
+
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
 </html>
