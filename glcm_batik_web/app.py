@@ -96,15 +96,43 @@ def noisy(noise_typ, image):
     noisy = np.clip(noisy, 0, 255).astype(np.uint8)
     return noisy
 
+def noise_filter(method, grayscale_image: np.ndarray):
+    buf = grayscale_image.copy()
+
+    if method == 'batas':
+        for h in range(1, grayscale_image.shape[0]):  # Loop melalui tinggi gambar (dimulai dari 1)
+            for w in range(1, grayscale_image.shape[1]):  # Loop melalui lebar gambar (dimulai dari 1)
+                min_pixel = np.min(grayscale_image[h-1:h+1, w-1:w+1])  # Mencari nilai piksel minimum di sekitar
+                max_pixel = np.max(grayscale_image[h-1:h+1, w-1:w+1])  # Mencari nilai piksel maksimum di sekitar
+                if grayscale_image[h, w] < min_pixel:
+                    buf[h, w] = min_pixel  # Jika piksel lebih kecil dari batas bawah, ubah ke min_pixel
+                elif grayscale_image[h, w] > max_pixel:
+                    buf[h, w] = max_pixel  # Jika piksel lebih besar dari batas atas, ubah ke max_pixel
+        return buf  # Mengembalikan gambar hasil filter
+    elif method == 'mean':
+        for h in range(1, grayscale_image.shape[0] - 1):  # Loop untuk tinggi gambar (menghindari tepi)
+            for w in range(1, grayscale_image.shape[1] - 1):  # Loop untuk lebar gambar (menghindari tepi)
+                # Menghitung rata-rata nilai piksel dari jendela 3x3 di sekitar piksel (h, w)
+                buf[h, w] = np.mean(grayscale_image[h-1:h+2, w-1:w+2])
+        return buf  # Mengembalikan gambar hasil filter
+    elif method == 'median':
+        for h in range(1, grayscale_image.shape[0] - 1):  # Loop untuk tinggi gambar (menghindari tepi)
+            for w in range(1, grayscale_image.shape[1] - 1):  # Loop untuk lebar gambar (menghindari tepi)
+                # Menghitung median dari jendela 3x3 di sekitar piksel (h, w)
+                buf[h, w] = np.median(grayscale_image[h-1:h+2, w-1:w+2])
+        return buf  # Mengembalikan gambar hasil filter median
+    else:
+        raise ValueError("Metode filter tidak dikenali: harus 'batas', 'mean', atau 'median'")
+
 # Rute Halaman
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
-            return redirect(request.url, code=303)
+            return jsonify({ "message": "Invalid Input" }), 400
         file = request.files['file']
         if file.filename == '':
-            return redirect(request.url, code=303)
+            return jsonify({ "message": "Invalid Input" }), 400
         if file and allowed_file(file.filename) and model:
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -113,9 +141,9 @@ def upload_file():
             features = extract_features(filepath)
             prediction = model.predict([features])
 
-            return render_template('index.html', filename=filename, prediction=prediction[0])
+            return jsonify({ "filename": f"/uploads/{filename}", "prediction": prediction[0] })
         else:
-            return redirect(request.url, code=303)
+            return jsonify({ "message": "Invalid Input" }), 400
 
     # Render halaman utama (GET request)
     return render_template('index.html', filename=None, prediction=None)
@@ -123,6 +151,32 @@ def upload_file():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(os.path.realpath(app.config['UPLOAD_FOLDER']), filename)
+
+@app.post('/filter-noise')
+def filter_noise():
+    if request.form['method'] not in ["batas", "mean", "median"]:
+        return jsonify({ "message": "Invalid Input" }), 400
+    method_filter = request.form['method']
+    if 'file' not in request.files:
+        return jsonify({ "message": "Invalid Input" }), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({ "message": "Invalid Input" }), 400
+    if file and allowed_file(file.filename):
+        image = Image.open(file).convert('L')
+
+        img_array = np.array(image)
+
+        denoised_img = noise_filter(method_filter, img_array)
+
+        result_image = Image.fromarray(denoised_img)
+        img_io = IO.BytesIO()
+        result_image.save(img_io, "PNG")
+        img_io.seek(0)
+
+        return send_file(img_io, mimetype="image/png")
+    else:
+        return jsonify({ "message": "Error Process" }), 400
 
 @app.route('/add-noise', methods=['GET', 'POST'])
 def add_noise():

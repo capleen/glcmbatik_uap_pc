@@ -18,22 +18,27 @@
         <h2>Klasifikasi Pola Batik Menggunakan GLCM dan KNN/SVM</h2>
         <a href="/add-noise">Add Noise to Picture >></a>
         <p>Unggah gambar batik (JPG, PNG, BMP) untuk diprediksi polanya.</p>
-        <form method="post" enctype="multipart/form-data">
-            <input type="file" accept="image/*" id="imageInput" name="file" required>
-            <input type="submit" value="Upload & Prediksi">
-        </form>
+        <input type="file" accept="image/*" id="imageInput" name="file" required>
+        <button type="button" onclick="uploadImage()">Prediksi</button>
 
         <div class="result" id="preview" style="display: none;">
+            <button type="button" onclick="filterImage('none')">No Filter</button>
+            <button type="button" onclick="filterImage('batas')">Filter Batas</button>
+            <button type="button" onclick="filterImage('mean')">Filter Mean</button>
+            <button type="button" onclick="filterImage('median')">Filter Median</button>
             <h3>Preview</h3>
             <img src="#" alt="Preview Gambar" id="imagePreview">
         </div>
 
-        {% if filename %}
-        <div class="result">
-            <h3>Hasil Prediksi: {{ prediction }}</h3>
-            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Gambar yang diunggah">
+        <div class="result" id="filterResult" style="display: none;">
+            <h3>Filter Result</h3>
+            <img src="#" alt="Gambar Hasil Filter" id="imageFilterResult">
         </div>
-        {% endif %}
+
+        <div class="result" id="hasilPrediksi" style="display: none;">
+            <h3>Hasil Prediksi:</h3>
+            <img src="#" alt="Gambar yang diunggah">
+        </div>
     </div>
 </body>
 
@@ -42,7 +47,99 @@
     const preview = document.querySelector("#preview");
     const imagePreview = document.querySelector("#imagePreview");
 
+    const filterResult = document.querySelector("#filterResult");
+    const imageFilterResult = document.querySelector("#imageFilterResult");
+
+    const hasilPrediksi = document.querySelector("#hasilPrediksi");
+    const h3HasilPrediksi = hasilPrediksi.querySelector("h3");
+    const imgHasilPrediksi = hasilPrediksi.querySelector("img");
+
+    let filteredImage = null;
+
+    function uploadImage() {
+        const file = filteredImage ?? imageInput.files[0];
+
+        if (!file) {
+            alert("Please select an image!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const sendFetch = fetch(document.location.href, {
+            method: 'POST',
+            body: formData,
+        });
+
+        sendFetch.then((response) => {
+            if (!response.ok) {
+                throw new Error("Upload Failed");
+            }
+
+            return response.json();
+        }).then((data) => {
+            hasilPrediksi.style.display = 'block';
+
+            h3HasilPrediksi.innerText = `Hasil Prediksi: ${data.prediction}`;
+            imgHasilPrediksi.src = data.filename;
+        }).catch((error) => {
+
+            console.log(error);
+            alert("Error Uploading Image");
+        });
+    }
+
+    function filterImage(method_filter) {
+        hasilPrediksi.style.display = 'none';
+
+        if (method_filter === 'none') {
+            filteredImage = null;
+            filterResult.style.display = 'none';
+            return;
+        }
+
+        const file = imageInput.files[0];
+
+        if (!file) {
+            alert("Please select an image!");
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append("method", method_filter);
+        formData.append("file", file);
+
+        const sendFetch = fetch(`${document.location.origin}/filter-noise`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        sendFetch.then((response) => {
+            if (!response.ok) {
+                throw new Error("Upload Failed");
+            }
+
+            return response.blob();
+        }).then((image) => {
+            filteredImage = new File([image], 'filtered_image.png', { type: image.type });
+
+            const imageURL = URL.createObjectURL(image);
+
+            filterResult.style.display = 'block';
+
+            imageFilterResult.src = imageURL;
+        }).catch((error) => {
+
+            console.log(error);
+            alert("Error Uploading Image");
+        });
+    }
+
     imageInput.addEventListener('change', function () {
+        hasilPrediksi.style.display = 'none';
+        filterResult.style.display = 'none';
         const file = this.files[0];
 
         if (file) {
