@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klasifikasi Pola Batik</title>
     <style>
-        body { font-family: sans-serif; margin: 40px; text-align: center; }
-        .container { max-width: 600px; margin: auto; border: 1px solid #ccc; padding: 20px; border-radius: 10px; }
+        body { font-family: sans-serif; margin: 40px; text-align: center; background: url('../static/images/batik.jpg') rgba(0, 0, 0, 0.721); background-blend-mode: multiply; }
+        .container { max-width: 600px; margin: auto; border: 1px solid #ccc; padding: 30px; border-radius: 10px; background-color: rgba(255, 255, 255, 0.866); backdrop-filter: blur(8px); }
         .result { margin-top: 20px; }
         img { max-width: 100%; height: auto; margin-top: 20px; border-radius: 5px; }
-        h2 { color: #333; }
+        h2 { color: #333; margin-top: 0; }
         h3 { color: #007bff; }
+        button {
+            min-width: 30px;
+            background-color: #e24317;
+            padding: 0.5rem 1.4rem;
+            border-radius: 6px;
+            color: white;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        } button:hover {
+            background-color: #b72d0e;
+        }
+        #preview > button {
+            background-color: #007bff;
+        } #preview > button:hover {background-color: #0e5cb0;}
     </style>
 </head>
 <body>
@@ -60,7 +74,7 @@
         const file = filteredImage ?? imageInput.files[0];
 
         if (!file) {
-            alert("Please select an image!");
+            alert("Gambar belum diupload!");
             return;
         }
 
